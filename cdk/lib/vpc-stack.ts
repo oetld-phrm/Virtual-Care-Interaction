@@ -3,6 +3,7 @@ import { Construct } from "constructs";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import { Fn } from 'aws-cdk-lib';
+import { APP_CONFIG } from './parameters';
 
 export class VpcStack extends Stack {
   public readonly vpc: ec2.Vpc;
@@ -12,7 +13,7 @@ export class VpcStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    const existingVpcId: string = ''; //CHANGE IF DEPLOYING WITH EXISTING VPC
+    const existingVpcId: string = APP_CONFIG.existingVpcId; //CHANGE IF DEPLOYING WITH EXISTING VPC
 
     if (existingVpcId != '') {
       //const publicSubnetCIDR = cdk.aws_ssm.StringParameter.valueFromLookup(this, 'public-subnet-cidr');
@@ -20,7 +21,7 @@ export class VpcStack extends Stack {
       
       
       
-      const AWSControlTowerStackSet = ""; //CHANGE TO YOUR CONTROL TOWER STACK SET
+      const AWSControlTowerStackSet = APP_CONFIG.AWSControlTowerStackSet; //CHANGE TO YOUR CONTROL TOWER STACK SET
       const vciPrefix = "VIRTUAL-CARE-INTERACTION-production";
 
       this.vpcCidrString = "172.31.96.0/20";

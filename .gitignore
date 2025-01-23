@@ -132,3 +132,6 @@ dist
 # Python virtual environment
 venv/
 .env/
+
+#ignore params file
+cdk/lib/parameters.ts
