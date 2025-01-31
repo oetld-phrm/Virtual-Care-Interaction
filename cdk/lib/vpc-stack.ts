@@ -22,7 +22,7 @@ export class VpcStack extends Stack {
 
       const vciPrefix = "VIRTUAL-CARE-INTERACTION-production";
 
-      this.vpcCidrString = "172.31.94.0/20";
+      this.vpcCidrString = "172.31.126.0/20";
 
       // VPC for application
       this.vpc = ec2.Vpc.fromVpcAttributes(this, `${id}-Vpc`, {
