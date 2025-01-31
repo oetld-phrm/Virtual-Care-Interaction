@@ -4,6 +4,7 @@ import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import { Fn } from "aws-cdk-lib";
 import { AwsCustomResource, AwsCustomResourcePolicy, PhysicalResourceId } from "aws-cdk-lib/custom-resources";
+import { APP_CONFIG } from './parameters';
 
 export class VpcStack extends Stack {
   public readonly vpc: ec2.Vpc;
@@ -13,11 +14,11 @@ export class VpcStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    const existingVpcId: string = ""; // CHANGE IF DEPLOYING WITH EXISTING VPC
+    const existingVpcId: string = APP_CONFIG.existingVpcId; //CHANGE IF DEPLOYING WITH EXISTING VPC
 
     if (existingVpcId !== "") {
-      const AWSControlTowerStackSet = ""; // CHANGE TO YOUR CONTROL TOWER STACK SET
-      const existingPublicSubnetID: string = ""; // CHANGE IF DEPLOYING WITH EXISTING PUBLIC SUBNET
+      const AWSControlTowerStackSet = APP_CONFIG.AWSControlTowerStackSet; //CHANGE TO YOUR CONTROL TOWER STACK SET
+      const existingPublicSubnetID: string = APP_CONFIG.existingPublicSubnetID; // CHANGE IF DEPLOYING WITH EXISTING PUBLIC SUBNET
 
       const vciPrefix = "VIRTUAL-CARE-INTERACTION-production";
 
