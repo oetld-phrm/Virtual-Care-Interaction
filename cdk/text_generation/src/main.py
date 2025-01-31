@@ -261,7 +261,7 @@ def handler(event, context):
         logger.info("Retrieving vectorstore config.")
         db_secret = get_secret(DB_SECRET_NAME)
         vectorstore_config_dict = {
-            'collection_name': simulation_group_id,
+            'collection_name': patient_id,
             'dbname': db_secret["dbname"],
             'user': db_secret["username"],
             'password': db_secret["password"],

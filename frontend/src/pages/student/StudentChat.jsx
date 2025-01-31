@@ -8,6 +8,8 @@ import { fetchUserAttributes } from "aws-amplify/auth";
 import DraggableNotes from "./DraggableNotes";
 import FilesPopout from "./FilesPopout";
 
+import { signOut } from "aws-amplify/auth";
+
 
 import {
   Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Button, Typography,
@@ -472,6 +474,16 @@ const StudentChat = ({ group, patient, setPatient, setGroup }) => {
     navigate(-1);
   };
 
+  const handleSignOut = async (event) => {
+    event.preventDefault();
+    try {
+      await signOut();
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Error signing out: ", error);
+    }
+  };
+
   const handleNewChat = () => {
     let sessionData;
     let userEmail;
@@ -745,6 +757,7 @@ const StudentChat = ({ group, patient, setPatient, setGroup }) => {
   }
 
     return (
+      
       <div className="flex flex-row h-screen">
         {/* Sidebar */}
         <div
@@ -904,6 +917,19 @@ const StudentChat = ({ group, patient, setPatient, setGroup }) => {
 
         {/* Chat Area */}
         <div className="flex flex-col-reverse flex-grow bg-[#F8F9FD]">
+          {/* Sign-Out Button */}
+          <div className="absolute top-4 right-4">
+            <button
+              type="button"
+              className="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-700 transition duration-200"
+              onClick={handleSignOut}
+            >
+              Sign Out
+            </button>
+          </div>
+
+
+
           <div className="flex items-center justify-between border bg-[#f2f0f0] border-[#8C8C8C] py-2 mb-12 mx-20">
             <textarea
               ref={textareaRef}
@@ -992,7 +1018,7 @@ const StudentChat = ({ group, patient, setPatient, setGroup }) => {
             </Button>
           </DialogActions>
         </Dialog>
-      </div>
+      </div> //
     );
   };
   

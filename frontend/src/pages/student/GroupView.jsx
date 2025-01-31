@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { fetchUserAttributes } from "aws-amplify/auth";
 
+import { signOut } from "aws-amplify/auth";
+
 import { BiCheck } from "react-icons/bi";
 import { FaInfoCircle } from "react-icons/fa";
 
@@ -84,6 +86,16 @@ export const GroupView = ({ group, setPatient, setGroup }) => {
   const handleBack = () => {
     sessionStorage.removeItem("group");
     navigate("/home");
+  };
+
+  const handleSignOut = async (event) => {
+    event.preventDefault();
+    try {
+      await signOut();
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Error signing out: ", error);
+    }
   };
 
   useEffect(() => {
@@ -218,7 +230,9 @@ export const GroupView = ({ group, setPatient, setGroup }) => {
 
   return (
     <div className="bg-[#F8F9FD] w-screen h-screen">
-      <header className="bg-[#F8F9FD] p-2 flex justify-between items-center max-h-20">
+
+      {/* Sign-Out Button in the top right */}
+      <header className="bg-[#F8F9FD] p-4 flex justify-between items-center max-h-20">
         <div className="text-black text-xl font-roboto font-semibold p-2 flex flex-row">
           <img
             onClick={() => handleBack()}
@@ -227,11 +241,19 @@ export const GroupView = ({ group, setPatient, setGroup }) => {
             alt="back"
           />
         </div>
-      </header>
-      <div className="flex flex-col">
         <div className="text-black text-start text-xl font-roboto font-semibold p-2 ml-4">
           Patients
         </div>
+        <button
+          type="button"
+          className="bg-gray-800 text-white hover:bg-gray-700"
+          onClick={handleSignOut}
+        >
+          Sign Out
+        </button>
+      </header>
+
+      <div className="flex flex-col">
         <div className="flex justify-center items-center">
           {data.length === 0 ? (
             <div className="p-4 text-center text-gray-500">
