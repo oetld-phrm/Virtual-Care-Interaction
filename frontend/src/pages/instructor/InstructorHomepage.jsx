@@ -136,12 +136,14 @@ const InstructorHomepage = () => {
         if (response.ok) {
           const data = await response.json();
           setGroupData(data);
+          console.log(data)
           const formattedData = data.map((group) => ({
             group: group.group_name,
             description: group.group_description || "No description available",
             date: new Date().toLocaleDateString(), // REPLACE
             status: group.group_student_access ? "Active" : "Inactive",
             id: group.simulation_group_id,
+            access_code: group.group_access_code,
           }));
           setRows(formattedData);
         } else {
@@ -167,7 +169,6 @@ const InstructorHomepage = () => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
-
   const filteredRows = rows.filter((row) =>
     row.group.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -185,6 +186,7 @@ const InstructorHomepage = () => {
       console.error("Group not found!");
     }
   };
+
 
   return (
     <Routes>
@@ -227,13 +229,16 @@ const InstructorHomepage = () => {
                   <Table aria-label="group table">
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ width: "60%", padding: "16px" }}>
+                        <TableCell sx={{ width: "40%", padding: "16px" }}>
                           Group
                         </TableCell>
-                        <TableCell sx={{ width: "40%", padding: "16px" }}>
+                        <TableCell sx={{ width: "20%", padding: "16px" }}>
+                        Group Access Code
+                        </TableCell>
+                        <TableCell sx={{ width: "30%", padding: "16px" }}>
                           Description
                         </TableCell>
-                        <TableCell sx={{ width: "20%", padding: "16px" }}>
+                        <TableCell sx={{ width: "10%", padding: "16px" }}>
                           Status
                         </TableCell>
                       </TableRow>
@@ -247,16 +252,22 @@ const InstructorHomepage = () => {
                         .map((row, index) => (
                           <TableRow
                             key={index}
-                            onClick={() => handleRowClick(row.group, row.id)}
                             style={{
-                              cursor: "pointer",
                               transition: "background-color 0.3s",
                             }}
                             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f5f5f5")}
                             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
                           >
-                            <TableCell sx={{ padding: "16px" }}>
+                            <TableCell
+                            onClick={() => handleRowClick(row.group, row.id)}
+                            style={{
+                              cursor:"pointer",
+                            }}
+                            sx={{ padding: "16px" }}>
                               {titleCase(row.group)}
+                            </TableCell>
+                            <TableCell sx={{ padding: "16px" }}>
+                            {row.access_code}
                             </TableCell>
                             <TableCell sx={{ padding: "16px" }}>
                               {row.description}
