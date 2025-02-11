@@ -198,10 +198,10 @@ export const AdminSimulationGroups = () => {
                     .map((row, index) => (
                       <TableRow
                         key={index}
-                        onClick={() => handleGroupClick(row)}
-                        sx={{ cursor: "pointer" }}
                       >
-                        <TableCell sx={{ fontSize: 14 }}>
+                        <TableCell 
+                        onClick={() => handleGroupClick(row)}
+                        sx={{ cursor: "pointer", fontSize: 14  }}>
                           {row.groupName.toUpperCase()}
                         </TableCell>
                         <TableCell sx={{ fontSize: 14 }}>
