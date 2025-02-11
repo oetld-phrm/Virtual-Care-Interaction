@@ -361,20 +361,21 @@ exports.handler = async (event) => {
             const { patient_prompt } = JSON.parse(event.body);
 
             try {
-                // Check if a patient with the same name already exists in the simulation group
-                const existingPatient = await sqlConnection`
-                    SELECT * FROM "patients"
-                    WHERE simulation_group_id = ${simulation_group_id}
-                    AND patient_name = ${patient_name};
-                `;
+              //removing this as it's checking all patients for the same name and this isn't a real concern - causing more issues than it's solving  
+              // Check if a patient with the same name already exists in the simulation group
+                // const existingPatient = await sqlConnection`
+                //     SELECT * FROM "patients"
+                //     WHERE simulation_group_id = ${simulation_group_id}
+                //     AND patient_name = ${patient_name};
+                // `;
 
-                if (existingPatient.length > 0) {
-                    response.statusCode = 400;
-                    response.body = JSON.stringify({
-                        error: "A patient with this name already exists in the given simulation group.",
-                    });
-                    break;
-                }
+                // if (existingPatient.length > 0) {
+                //     response.statusCode = 400;
+                //     response.body = JSON.stringify({
+                //         error: "A patient with this name already exists in the given simulation group.",
+                //     });
+                //     break;
+                // }
 
                 // Insert new patient into the "patients" table with age and gender
                 const newPatient = await sqlConnection`
@@ -518,25 +519,27 @@ exports.handler = async (event) => {
             event.queryStringParameters.patient_id &&
             event.queryStringParameters.instructor_email
         ) {
+
             const { patient_id, instructor_email } = event.queryStringParameters;
             const { patient_name, patient_age, patient_gender, patient_prompt } = JSON.parse(event.body || "{}");
-    
+
             if (patient_name != null && patient_age != null && patient_gender != null  && patient_prompt != null) {
                 try {
+                    //removing this as it's checking all patients for the same name and this isn't a real concern - causing more issues than it's solving  
                     // Check if another patient with the same name exists under the same simulation group
-                    const existingPatient = await sqlConnection`
-                        SELECT * FROM "patients"
-                        WHERE patient_name = ${patient_name}
-                        AND patient_id != ${patient_id};
-                    `;
+                    // const existingPatient = await sqlConnection`
+                    //     SELECT * FROM "patients"
+                    //     WHERE patient_name = ${patient_name}
+                    //     AND patient_id != ${patient_id};
+                    // `;
     
-                    if (existingPatient.length > 0) {
-                        response.statusCode = 400;
-                        response.body = JSON.stringify({
-                            error: "A patient with this name already exists.",
-                        });
-                        break;
-                    }
+                    // if (existingPatient.length > 0) {
+                    //     response.statusCode = 400;
+                    //     response.body = JSON.stringify({
+                    //         error: "A patient with this name already exists.",
+                    //     });
+                    //     break;
+                    // }
     
                     // Update the patient details in the patients table
                     await sqlConnection`
