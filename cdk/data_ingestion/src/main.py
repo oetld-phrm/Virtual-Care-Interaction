@@ -178,7 +178,7 @@ def insert_file_into_db(patient_id, file_name, file_type, file_path, bucket_name
         logger.error(f"Error inserting file {file_name}.{file_type} into database: {e}")
         raise
 
-def update_vectorstore_from_s3(bucket, patient_id):
+def update_vectorstore_from_s3(bucket, simulation_group_id, patient_id):
     embeddings = BedrockEmbeddings(
         model_id=get_parameter(), 
         client=bedrock_runtime,
@@ -199,12 +199,12 @@ def update_vectorstore_from_s3(bucket, patient_id):
     try:
         update_vectorstore(
             bucket=bucket,
-            group=patient_id,
+            group=simulation_group_id,
             vectorstore_config_dict=vectorstore_config_dict,
             embeddings=embeddings
         )
     except Exception as e:
-        logger.error(f"Error updating vectorstore for patient {patient_id}: {e}")
+        logger.error(f"Error updating vectorstore for group {simulation_group_id}: {e}")
         raise
 
 def handler(event, context):
@@ -259,10 +259,10 @@ def handler(event, context):
         # Update embeddings for patient after the file is successfully inserted into the database. Only if document file
         if file_category == "documents":
             try:
-                update_vectorstore_from_s3(bucket_name, patient_id)
-                logger.info(f"Vectorstore updated successfully for patient {patient_id}.")
+                update_vectorstore_from_s3(bucket_name, simulation_group_id, patient_id)
+                logger.info(f"Vectorstore updated successfully for patient {patient_id} in group {simulation_group_id}.")
             except Exception as e:
-                logger.error(f"Error updating vectorstore for patient {patient_id}: {e}")
+                logger.error(f"Error updating vectorstore for patient {patient_id} in group {simulation_group_id}: {e}")
                 return {
                     "statusCode": 500,
                     "body": json.dumps(f"File inserted, but error updating vectorstore: {e}")
