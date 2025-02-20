@@ -87,6 +87,56 @@ def connect_to_db():
             raise
     return connection
 
+def get_embedding_count(patient_id):
+    """
+    Queries the database for the number of embeddings associated with a specific patient.
+
+    Args:
+        patient_id (str): The patient ID (collection name in the vectorstore).
+
+    Returns:
+        int: The count of embeddings found for the patient.
+    """
+    connection = connect_to_db()
+    if connection is None:
+        logger.error("Database connection failed. Unable to query embeddings.")
+        raise
+
+    try:
+        cur = connection.cursor()
+
+        # Query to count embeddings for the patient
+        query = """
+        SELECT COUNT(*)
+        FROM langchain_pg_embedding e
+        JOIN langchain_pg_collection c ON e.collection_id = c.uuid
+        WHERE c.name = %s;
+        """
+        cur.execute(query, (patient_id,))
+        result = cur.fetchone()
+
+        connection.commit()
+        cur.close()
+
+        if result and result[0] > 0:
+            logger.info(f"Current embedding count for patient {patient_id}: {result[0]}")
+            return result[0]
+        else:
+            logger.info(f"No embeddings found for patient {patient_id}. This may be a new collection.")
+            return 0
+
+    except psycopg2.errors.UndefinedTable as e:
+        # Handles case where tables do not exist yet (first patient)
+        logger.warning(f"LangChain tables do not exist yet as this might be the first patient being created. Returning 0 embeddings for patient {patient_id}.")
+        return 0
+
+    except Exception as e:
+        if cur:
+            cur.close()
+        connection.rollback()
+        logger.error(f"Error retrieving embedding count for patient {patient_id}: {e}")
+        raise
+
 def parse_s3_file_path(file_key):
     # Assuming the file path is of the format: {simulation_group_id}/{patient_id}/{documents or info}/{file_name}.{file_type}
     try:
@@ -200,12 +250,19 @@ def update_vectorstore_from_s3(bucket, simulation_group_id, patient_id):
         update_vectorstore(
             bucket=bucket,
             group=simulation_group_id,
+            patient_id=patient_id,
             vectorstore_config_dict=vectorstore_config_dict,
             embeddings=embeddings
         )
     except Exception as e:
-        logger.error(f"Error updating vectorstore for group {simulation_group_id}: {e}")
-        raise
+        error_message = str(e)
+        if "An error occurred (404) when calling the HeadObject operation: Not Found" in error_message:
+            logger.warning(f"Temporary page file not found while updating vectorstore for patient {patient_id} in group {simulation_group_id}. "
+                           f"This can happen when multiple files are uploaded when creating or editing a patient. All files will be converted to embeddings. "
+                           f"We recommend querying database to ensure correct amount of embeddings are created or checking below in the logs to see the difference in the embeddings.")
+        else:
+            logger.error(f"Error updating vectorstore for patient {patient_id} in group {simulation_group_id}: {e}")
+            raise
 
 def handler(event, context):
     records = event.get('Records', [])
@@ -236,6 +293,14 @@ def handler(event, context):
                 "statusCode": 400,
                 "body": json.dumps("Error parsing S3 file path.")
             }
+        
+        # Get initial embedding count
+        try:
+            initial_count = get_embedding_count(patient_id)
+            logger.info(f"Initial count of embeddings are {initial_count}")
+        except Exception as e:
+            initial_count = 0
+            logger.error(f"Error getting initial count of embeddings: {e}")
 
         if event_name.startswith('ObjectCreated:'):
             try:
@@ -269,6 +334,25 @@ def handler(event, context):
                 }
         else:            
             logger.info(f"{file_name}.{file_type} in {file_category} folder is not ingested")
+        
+        # Get final embedding count
+        try:
+            final_count = get_embedding_count(patient_id)
+            logger.info(f"Final count of embeddings are {final_count}")
+
+            difference = final_count - initial_count
+
+            if difference > 0:
+                logger.info(f"{difference} embeddings were created for patient {patient_id}.")
+                print(f"{difference} embeddings were created for patient {patient_id}.")
+            elif difference == 0:
+                logger.info(f"No change in embeddings for patient {patient_id}.")
+                print(f"No change in embeddings for patient {patient_id}.")
+            else:
+                logger.info(f"{difference} embeddings were removed for patient {patient_id}.")
+                print(f"{abs(difference)} embeddings were removed for patient {patient_id}.")
+        except Exception as e:
+            logger.error(f"Error getting final count of embeddings: {e}")
 
         return {
             "statusCode": 200,

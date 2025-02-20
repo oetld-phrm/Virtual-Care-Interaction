@@ -74,38 +74,126 @@ cd Virtual-Care-Interaction
 ```
 
 ### Step 2: Upload Secrets
-You would have to supply your GitHub personal access token you created earlier when deploying the solution. Run the following command and ensure you replace `<YOUR-GITHUB-TOKEN>` and `<YOUR-PROFILE-NAME>` with your actual GitHub token and the appropriate AWS profile name.
-```
+
+#### You would have to supply your GitHub personal access token you created earlier when deploying the solution. Run the following command and ensure you replace `<YOUR-GITHUB-TOKEN>` and `<YOUR-PROFILE-NAME>` with your actual GitHub token and the appropriate AWS profile name. Select the command corresponding to your operating system from the options below.
+
+
+<details>
+<summary>macOS</summary>
+
+```bash
 aws secretsmanager create-secret \
     --name github-personal-access-token \
-    --secret-string '{\"my-github-token\":\"<YOUR-GITHUB-TOKEN>\"}'\
+    --secret-string '{"my-github-token": "<YOUR-GITHUB-TOKEN>"}' \
     --profile <YOUR-PROFILE-NAME>
 ```
 
+</details>
+
+<details>
+<summary>Windows CMD</summary>
+
+```cmd
+aws secretsmanager create-secret ^
+    --name github-personal-access-token ^
+    --secret-string "{\"my-github-token\": \"<YOUR-GITHUB-TOKEN>\"}" ^
+    --profile <YOUR-PROFILE-NAME>
+```
+
+</details>
+
+<details>
+<summary>PowerShell</summary>
+
+```powershell
+aws secretsmanager create-secret `
+    --name github-personal-access-token `
+    --secret-string '{"my-github-token": "<YOUR-GITHUB-TOKEN>"}' `
+    --profile <YOUR-PROFILE-NAME>
+```
+</details>
+
+&nbsp;
+
 Moreover, you will need to upload your github username to Amazon SSM Parameter Store. You can do so by running the following command. Make sure you replace `<YOUR-GITHUB-USERNAME>` and `<YOUR-PROFILE-NAME>` with your actual username and the appropriate AWS profile name.
 
-```
+
+<details>
+<summary>macOS</summary>
+
+```bash
 aws ssm put-parameter \
     --name "vci-owner-name" \
     --value "<YOUR-GITHUB-USERNAME>" \
     --type String \
     --profile <YOUR-PROFILE-NAME>
 ```
+</details>
+
+<details>
+<summary>Windows CMD</summary>
+
+```cmd
+aws ssm put-parameter ^
+    --name "vci-owner-name" ^
+    --value "<YOUR-GITHUB-USERNAME>" ^
+    --type String ^
+    --profile <YOUR-PROFILE-NAME>
+```
+
+</details>
+
+<details>
+<summary>PowerShell</summary>
+
+```powershell
+aws ssm put-parameter `
+    --name "vci-owner-name" `
+    --value "<YOUR-GITHUB-USERNAME>" `
+    --type String `
+    --profile <YOUR-PROFILE-NAME>
+```
+</details>
+
+&nbsp;
 
 You would have to supply a custom database username when deploying the solution to increase security. Run the following command and ensure you replace `<YOUR-DB-USERNAME>` with the custom name of your choice.
 
-```
-aws secretsmanager create-secret \
-    --name VCISecrets \
-    --secret-string '{\"DB_Username\":\"<YOUR-DB-USERNAME>\"}'\
-    --profile <your-profile-name>
-```
+<details>
+<summary>macOS</summary>
 
-Note: If you using an Apple Computer, use the following command instead:
+```bash
 aws secretsmanager create-secret \
     --name VCISecrets \
     --secret-string "{\"DB_Username\":\"<YOUR-DB-USERNAME>\"}"\
     --profile <your-profile-name>
+```
+</details>
+
+<details>
+<summary>Windows CMD</summary>
+
+```cmd
+aws secretsmanager create-secret ^
+    --name VCISecrets ^
+    --secret-string "{\"DB_Username\":\"<YOUR-DB-USERNAME>\"}"^
+    --profile <your-profile-name>
+```
+
+</details>
+
+<details>
+<summary>PowerShell</summary>
+
+```powershell
+aws secretsmanager create-secret `
+    --name VCISecrets `
+    --secret-string "{\"DB_Username\":\"<YOUR-DB-USERNAME>\"}"`
+    --profile <your-profile-name>
+```
+</details>
+
+&nbsp;
 
 For example,
 
@@ -117,13 +205,46 @@ aws secretsmanager create-secret \
 ```
 
 Finally, in order to restrict user sign up to specific email domains, you will need to upload a comma separated list of allowed email domains to Amazon SSM Parameter Store. You can do so by running the following command. Make sure you replace `<YOUR-ALLOWED-EMAIL-DOMAIN-LIST>` and `<YOUR-PROFILE-NAME>` with your actual list and the appropriate AWS profile name.
-```
+
+<details>
+<summary>macOS</summary>
+
+```bash
 aws ssm put-parameter \
     --name "/VCI/AllowedEmailDomains" \
     --value "<YOUR-ALLOWED-EMAIL-DOMAIN-LIST>" \
     --type SecureString \
     --profile <YOUR-PROFILE-NAME>
 ```
+</details>
+
+<details>
+<summary>Windows CMD</summary>
+
+```cmd
+aws ssm put-parameter ^
+    --name "/VCI/AllowedEmailDomains" ^
+    --value "<YOUR-ALLOWED-EMAIL-DOMAIN-LIST>" ^
+    --type SecureString ^
+    --profile <YOUR-PROFILE-NAME>
+```
+
+</details>
+
+<details>
+<summary>PowerShell</summary>
+
+```powershell
+aws ssm put-parameter `
+    --name "/VCI/AllowedEmailDomains" `
+    --value "<YOUR-ALLOWED-EMAIL-DOMAIN-LIST>" `
+    --type SecureString `
+    --profile <YOUR-PROFILE-NAME>
+```
+</details>
+
+&nbsp;
+
 For example,
 ```
 aws ssm put-parameter \
@@ -133,11 +254,11 @@ aws ssm put-parameter \
     --profile <YOUR-PROFILE-NAME>
 ```
 
-#### CDK Deployment in a Pre-existing VPC
+#### Step 3a: CDK Deployment with an Existing VPC
 
-The following set of instructions are only if you want to deploy this application in a **hybrid cloud environment**. If you do not want to do this you can skip this section.
+The following set of instructions are only if you want to deploy this application with an **existing VPC**. If you do not want to do this you can skip this section.
 
-In order to deploy in a hybrid cloud environment, you will need to have access to the **aws-controltower-VPC** and the name of your **AWSControlTowerStackSet**.
+In order to deploy, you will need to have access to the **aws-controltower-VPC** and the name of your **AWSControlTowerStackSet**.
 
 #### Step-by-Step Instructions
 
@@ -160,17 +281,17 @@ In order to deploy in a hybrid cloud environment, you will need to have access t
 
      ![AWS Control Tower Stack Image](images/AWSControlTowerStack.png)
 
-  #### Second deployment in the Hybrid Cloud Environment:
+  #### Second deployment in the Environment with an Existing VPC:
 
-The following set of instructions are only if this is the second project you are deploying in a **hybrid cloud environment**. If you do not want to do this you can skip this section.
+The following set of instructions are only if this is the second project you are deploying with an **Existing VPC**. If you do not want to do this you can skip this section.
 
-In order to deploy a second project in a hybrid cloud environment, you will need to have access to the **Public Subnet ID**.
+In order to deploy a second project with a pre-existing vpc, you will need to have access to the **Public Subnet ID**.
 
 #### 
 
 ### **3. Update the Public Subnet ID and CIDR Range**
 
-To deploy a second project in a hybrid cloud environment, you need to obtain an available **Public Subnet ID** and an unused **CIDR range** within the VPC.
+To deploy a second project with a pre-existing vpc, you need to obtain an available **Public Subnet ID** and an unused **CIDR range** within the VPC.
 
 #### **Finding the Public Subnet ID**
 1. **Navigate to the AWS VPC Console**:  
@@ -214,9 +335,7 @@ AWS subnets within a VPC cannot overlap in CIDR range, so you need to select an 
 By following these steps, you ensure that the new subnet does not overlap with existing ones while maintaining correct alignment with AWS best practices.
 
 
-
-
-You can proceed with the rest of the deployment instructions and the Vpc Stack will automatically use your existing VPC instead of creating a new one. For more detailed information about the hybrid cloud deployment you checkout the [Hybrid Cloud Deployment Guide](/docs/HybridCloudDeploymentGuide.md)
+You can proceed with the rest of the deployment instructions and the Vpc Stack will automatically use your existing VPC instead of creating a new one. For more detailed information about the deployment with an Existing VPC checkout the [Existing VPC Deployment Guide](/docs/ExistingVPCDeployment.md)
 
 ### Step 3: CDK Deployment
 It's time to set up everything that goes on behind the scenes! For more information on how the backend works, feel free to refer to the Architecture Deep Dive, but an understanding of the backend is not necessary for deployment.

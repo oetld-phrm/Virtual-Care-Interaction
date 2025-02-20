@@ -175,6 +175,7 @@ def store_doc_chunks(
 def process_documents(
     bucket: str, 
     group: str, 
+    patient_id: str, 
     vectorstore: PGVector, 
     embeddings: BedrockEmbeddings,
     record_manager: SQLRecordManager
@@ -190,7 +191,7 @@ def process_documents(
     record_manager (SQLRecordManager): Manages list of documents in the vectorstore for indexing.
     """
     paginator = s3.get_paginator('list_objects_v2')
-    page_iterator = paginator.paginate(Bucket=bucket, Prefix=f"{group}/")
+    page_iterator = paginator.paginate(Bucket=bucket, Prefix=f"{group}/{patient_id}/documents")
     all_doc_chunks = []
     
     for page in page_iterator:
@@ -198,19 +199,17 @@ def process_documents(
             continue  # Skip pages without any content (e.g., if the bucket is empty)
         for file in page['Contents']:
             filename = file['Key']
-            if filename.split('/')[-2] == "documents": # Ensures that only files in the 'documents' folder are processed
-                if filename.endswith((".pdf", ".docx", ".pptx", ".txt", ".xlsx", ".xps", ".mobi", ".cbz")):
-                    patient = filename.split('/')[1]
-                    this_doc_chunks = add_document(
-                        bucket=bucket,
-                        group=group,
-                        patient=patient,
-                        filename=os.path.basename(filename),
-                        vectorstore=vectorstore,
-                        embeddings=embeddings
-                    )
+            if filename.endswith((".pdf", ".docx", ".pptx", ".txt", ".xlsx", ".xps", ".mobi", ".cbz")):
+                this_doc_chunks = add_document(
+                    bucket=bucket,
+                    group=group,
+                    patient=patient_id,
+                    filename=os.path.basename(filename),
+                    vectorstore=vectorstore,
+                    embeddings=embeddings
+                )
 
-                    all_doc_chunks.extend(this_doc_chunks)
+                all_doc_chunks.extend(this_doc_chunks)
     
     if all_doc_chunks:  # Check if there are any documents to index
         idx = index(

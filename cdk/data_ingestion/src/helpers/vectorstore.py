@@ -5,6 +5,7 @@ from helpers.helper import store_group_data
 def update_vectorstore(
     bucket: str,
     group: str,
+    patient_id: str,
     vectorstore_config_dict: Dict[str, str],
     embeddings#: BedrockEmbeddings
 ) -> None:
@@ -23,6 +24,7 @@ def update_vectorstore(
     store_group_data(
         bucket=bucket,
         group=group,
+        patient_id=patient_id,
         vectorstore_config_dict=vectorstore_config_dict,
         embeddings=embeddings
     )
