@@ -1,6 +1,26 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Box, Toolbar, Typography, Paper } from "@mui/material";
+import {
+  Button,
+  Box,
+  Toolbar,
+  Typography,
+  Paper,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogActions,
+  Switch,
+  Tooltip,
+  Avatar,
+  Collapse,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+ } from "@mui/material";
 import { fetchAuthSession, fetchUserAttributes } from "aws-amplify/auth";
 import {
   MRT_TableContainer,
@@ -10,8 +30,6 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import InstructorNewPatient from "./InstructorNewPatient";
 import InstructorEditPatients from "./InstructorEditPatients";
-import { Dialog, DialogContent, DialogTitle, DialogActions, Switch, Tooltip } from "@mui/material";
-import { Avatar } from "@mui/material";
 
 function groupTitleCase(str) {
   if (typeof str !== "string") {
@@ -48,6 +66,45 @@ const InstructorPatients = ({ groupName, simulation_group_id }) => {
   const [openEditPatientDialog, setOpenEditPatientDialog] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [profilePictures, setProfilePictures] = useState({});
+  const [expandedPatient, setExpandedPatient] = useState(null);
+  const [ingestionStatus, setIngestionStatus] = useState({});
+
+  const handleExpandRow = async (patientId) => {
+    if (expandedPatient === patientId) {
+      setExpandedPatient(null); // Collapse if already expanded
+      return;
+    }
+
+    try {
+      const session = await fetchAuthSession();
+      const token = session.tokens.idToken;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_ENDPOINT}instructor/ingestion_status?patient_id=${encodeURIComponent(
+          patientId
+        )}&simulation_group_id=${encodeURIComponent(simulation_group_id)}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: token,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.ok) {
+        const ingestionData = await response.json();
+        setIngestionStatus((prev) => ({ ...prev, [patientId]: ingestionData }));
+      } else {
+        console.error("Failed to fetch ingestion status:", response.statusText);
+        toast.error("Failed to fetch ingestion status");
+      }
+    } catch (error) {
+      console.error("Error fetching ingestion status:", error);
+    }
+
+    setExpandedPatient(patientId);
+  };
 
   // Toast function to display success messages
   const showSuccessToast = (message) => {
@@ -151,8 +208,57 @@ const InstructorPatients = ({ groupName, simulation_group_id }) => {
           </Button>
         ),
       },
+      {
+        accessorKey: "ingestion_status",
+        header: "Ingestion Status",
+        Cell: ({ row }) => {
+          const patientId = row.original.patient_id;
+          const isExpanded = expandedPatient === patientId;
+          const files = ingestionStatus[patientId] || {};
+
+          return (
+            <>
+              <Button
+                variant="contained"
+                size="small"
+                onClick={() => handleExpandRow(patientId)}
+              >
+                {isExpanded ? "Hide" : "Check"}
+              </Button>
+              {isExpanded && (
+                <TableContainer component={Paper} sx={{ marginTop: 1 }}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>File</TableCell>
+                        <TableCell>Status</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {Object.entries(files).length > 0 ? (
+                        Object.entries(files).map(([filename, status]) => (
+                          <TableRow key={filename}>
+                            <TableCell>{filename}</TableCell>
+                            <TableCell>{status}</TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={2} align="center">
+                            No files found
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </>
+          );
+        },
+      },
     ],
-    [profilePictures]
+    [profilePictures, expandedPatient, ingestionStatus]
   );
 
   const table = useMaterialReactTable({

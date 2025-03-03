@@ -5,6 +5,7 @@ import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources";
 import * as iam from "aws-cdk-lib/aws-iam";
 import { Construct } from "constructs";
 import { Duration } from "aws-cdk-lib";
+import * as wafv2 from "aws-cdk-lib/aws-wafv2";
 import {
   Architecture,
   Code,
@@ -24,6 +25,10 @@ import * as s3 from "aws-cdk-lib/aws-s3";
 import * as bedrock from "aws-cdk-lib/aws-bedrock";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import * as ssm from "aws-cdk-lib/aws-ssm";
+import * as logs from "aws-cdk-lib/aws-logs";
+import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
+import * as events from "aws-cdk-lib/aws-events";
+import * as targets from "aws-cdk-lib/aws-events-targets";
 
 export class ApiGatewayStack extends cdk.Stack {
   private readonly api: apigateway.SpecRestApi;
@@ -1042,8 +1047,8 @@ export class ApiGatewayStack extends cdk.Stack {
       `${id}-DataIngestLambdaDockerFunction`,
       {
         code: lambda.DockerImageCode.fromImageAsset("./data_ingestion"),
-        memorySize: 512,
-        timeout: cdk.Duration.seconds(300),
+        memorySize: 2048,
+        timeout: cdk.Duration.seconds(900),
         vpc: vpcStack.vpc, // Pass the VPC
         functionName: `${id}-DataIngestLambdaDockerFunction`,
         environment: {
@@ -1129,6 +1134,87 @@ export class ApiGatewayStack extends cdk.Stack {
         resources: [embeddingModelParameter.parameterArn],
       })
     );
+
+    // Get Log Group for dataIngestLambdaDockerFunc
+    let logGroup: logs.ILogGroup;
+    try {
+      logGroup = logs.LogGroup.fromLogGroupName(
+        this,
+        `${id}-ExistingDataIngestLambdaLogGroup`,
+        `/aws/lambda/${dataIngestLambdaDockerFunc.functionName}`
+      );
+    } catch {
+      logGroup = new logs.LogGroup(this, `${id}-DataIngestLambdaLogGroup`, {
+        logGroupName: `/aws/lambda/${dataIngestLambdaDockerFunc.functionName}`,
+        retention: logs.RetentionDays.ONE_WEEK, // Set retention policy
+        removalPolicy: cdk.RemovalPolicy.DESTROY, // Adjust as needed
+      });
+    }
+
+    // Define a CloudWatch Log Metric Filter to detect timeouts
+    const timeoutMetricFilter = new logs.MetricFilter(this, `${id}-LambdaTimeoutMetricFilter`, {
+      logGroup: logGroup,
+      metricNamespace: "LambdaTimeouts",
+      metricName: "DataIngestLambdaTimeouts",
+      filterPattern: logs.FilterPattern.literal("Task timed out after"),
+      metricValue: "1",
+    });
+
+    // Define the CloudWatch Alarm for Lambda timeout
+    const timeoutAlarm = new cloudwatch.Alarm(this, `${id}-DataIngestLambdaTimeoutAlarm`, {
+      metric: timeoutMetricFilter.metric({ 
+        statistic: 'Sum',
+        period: cdk.Duration.seconds(10)
+      }),
+      alarmDescription: `Alarm when ${dataIngestLambdaDockerFunc.functionName} Lambda function times out`,
+      threshold: 1,
+      evaluationPeriods: 1,
+      comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING // Avoid false positives
+    });
+
+    // This rule will help invoke timeout Lambda function when the alarm is triggered
+    const timeoutRule = new events.Rule(this, `${id}-DataIngestLambdaTimeoutRule`, {
+      eventPattern: {
+        source: ["aws.cloudwatch"],
+        detailType: ["CloudWatch Alarm State Change"],
+        detail: {
+          state: { value: ["ALARM", "OK"] }
+        },
+      }
+    });
+
+    // This Lambda function checks set the ingestion_status of LLM files to "error" if they are still "processing" when dataIngestLambdaDockerFunc times out
+    const timeoutHandlerLambda = new lambda.Function(this, `${id}-TimeoutHandlerLambda`, {
+      runtime: lambda.Runtime.PYTHON_3_9,
+      code: lambda.Code.fromAsset("lambda/timeoutHandler"),
+      handler: "timeoutHandler.lambda_handler",
+      timeout: Duration.seconds(300),
+      memorySize: 128,
+      vpc: vpcStack.vpc,
+      environment: {        
+        SM_DB_CREDENTIALS: db.secretPathUser.secretName,
+        RDS_PROXY_ENDPOINT: db.rdsProxyEndpoint,
+      },
+      functionName: `${id}-TimeoutHandlerLambda`,
+      layers: [psycopgLayer, powertoolsLayer],
+      role: lambdaRole,
+    });
+  
+    // Override the Logical ID of the Lambda Function to get ARN in OpenAPI
+    const cfnTimeoutHandlerLambda = timeoutHandlerLambda.node
+        .defaultChild as lambda.CfnFunction;
+    cfnTimeoutHandlerLambda.overrideLogicalId("TimeoutHandlerLambda");
+
+    // Ensure EventBridge can invoke the timeout Lambda
+    timeoutHandlerLambda.addPermission("AllowEventBridgeInvoke", {
+      principal: new iam.ServicePrincipal("events.amazonaws.com"),
+      action: "lambda:InvokeFunction",
+      sourceArn: timeoutRule.ruleArn,
+    });
+
+    // Link the EventBridge rule to trigger timeoutHandlerLambda
+    timeoutRule.addTarget(new targets.LambdaFunction(timeoutHandlerLambda));
 
     /**
      *
@@ -1479,5 +1565,62 @@ export class ApiGatewayStack extends cdk.Stack {
         ],
       })
     );
+
+    // Waf Firewall
+    const waf = new wafv2.CfnWebACL(this, `${id}-waf`, {
+      description: "VCI waf",
+      scope: "REGIONAL",
+      defaultAction: { allow: {} },
+      visibilityConfig: {
+        sampledRequestsEnabled: true,
+        cloudWatchMetricsEnabled: true,
+        metricName: "virtualcareint-firewall",
+      },
+      rules: [
+        {
+          name: "AWS-AWSManagedRulesCommonRuleSet",
+          priority: 1,
+          statement: {
+            managedRuleGroupStatement: {
+              vendorName: "AWS",
+              name: "AWSManagedRulesCommonRuleSet",
+            },
+          },
+          overrideAction: { none: {} },
+          visibilityConfig: {
+            sampledRequestsEnabled: true,
+            cloudWatchMetricsEnabled: true,
+            metricName: "AWS-AWSManagedRulesCommonRuleSet",
+          },
+        },
+        {
+          name: "LimitRequests1000",
+          priority: 2,
+          action: {
+            block: {},
+          },
+          statement: {
+            rateBasedStatement: {
+              limit: 1000,
+              aggregateKeyType: "IP",
+            },
+          },
+          visibilityConfig: {
+            sampledRequestsEnabled: true,
+            cloudWatchMetricsEnabled: true,
+            metricName: "LimitRequests1000",
+          },
+        },
+      ],
+    });
+    const wafAssociation = new wafv2.CfnWebACLAssociation(
+      this,
+      `${id}-waf-association`,
+      {
+        resourceArn: `arn:aws:apigateway:${this.region}::/restapis/${this.api.restApiId}/stages/${this.api.deploymentStage.stageName}`,
+        webAclArn: waf.attrArn,
+      }
+    );
+
   }
 }

@@ -137,6 +137,42 @@ def get_embedding_count(patient_id):
         logger.error(f"Error retrieving embedding count for patient {patient_id}: {e}")
         raise
 
+def update_ingestion_status(patient_id: str, file_path: str, status: str):
+    """
+    Updates the ingestion_status of a file in the patient_data table.
+
+    Args:
+        patient_id (str): The patient ID associated with the file.
+        file_path (str): The full file path stored in the database.
+        status (str): The status to update ('completed' or 'error').
+    """
+    connection = connect_to_db()
+    if connection is None:
+        logger.error("Database connection failed. Unable to update ingestion status.")
+        return
+
+    try:
+        cur = connection.cursor()
+
+        update_query = """
+        UPDATE "patient_data"
+        SET ingestion_status = %s
+        WHERE patient_id = %s
+        AND filepath = %s;
+        """
+        cur.execute(update_query, (status, patient_id, file_path))
+        connection.commit()
+        cur.close()
+
+        logger.info(f"Ingestion status for {file_path} updated to '{status}' for patient {patient_id}.")
+
+    except Exception as e:
+        if cur:
+            cur.close()
+        connection.rollback()
+        logger.error(f"Error updating ingestion status for patient {patient_id}, file {file_path}: {e}")
+        raise
+
 def parse_s3_file_path(file_key):
     # Assuming the file path is of the format: {simulation_group_id}/{patient_id}/{documents or info}/{file_name}.{file_type}
     try:
@@ -169,7 +205,7 @@ def parse_s3_file_path(file_key):
             "body": json.dumps("Error parsing S3 file path.")
         }
 
-def insert_file_into_db(patient_id, file_name, file_type, file_path, bucket_name):    
+def insert_file_into_db(patient_id, file_name, file_type, file_path, bucket_name, file_category):    
     connection = connect_to_db()
     if connection is None:
         logger.error("No database connection available.")
@@ -190,34 +226,36 @@ def insert_file_into_db(patient_id, file_name, file_type, file_path, bucket_name
         cur.execute(select_query, (patient_id, file_name, file_type))
         existing_file = cur.fetchone()
 
+        timestamp = datetime.now(timezone.utc)
+        ingestion_status = "processing" if file_category == "documents" else "not processing"
+
         if existing_file:
             # Update the existing record
             update_query = """
                 UPDATE "patient_data"
                 SET s3_bucket_reference = %s,
                     filepath = %s,
-                    time_uploaded = %s
+                    time_uploaded = %s,
+                    ingestion_status = %s
                 WHERE patient_id = %s
                 AND filename = %s
                 AND filetype = %s;
             """
-            timestamp = datetime.now(timezone.utc)
             cur.execute(update_query, (
-                bucket_name, file_path, timestamp, patient_id, file_name, file_type
+                bucket_name, file_path, timestamp, ingestion_status, patient_id, file_name, file_type
             ))
-            logger.info(f"Successfully updated file {file_name}.{file_type} in database for patient {patient_id}.")
+            logger.info(f"Successfully updated file {file_name}.{file_type} in database for patient {patient_id}, ingestion set to '{ingestion_status}'.")
         else:
             # Insert a new record
             insert_query = """
                 INSERT INTO "patient_data" 
-                (patient_id, filetype, s3_bucket_reference, filepath, filename, time_uploaded, metadata)
-                VALUES (%s, %s, %s, %s, %s, %s, %s);
+                (patient_id, filetype, s3_bucket_reference, filepath, filename, time_uploaded, metadata, ingestion_status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
             """
-            timestamp = datetime.now(timezone.utc)
             cur.execute(insert_query, (
-                patient_id, file_type, bucket_name, file_path, file_name, timestamp, ""
+                patient_id, file_type, bucket_name, file_path, file_name, timestamp, "", ingestion_status
             ))
-            logger.info(f"Successfully inserted file {file_name}.{file_type} for patient {patient_id}.")
+            logger.info(f"Successfully inserted new file {file_name}.{file_type} for patient {patient_id}, ingestion set to '{ingestion_status}'.")
 
         connection.commit()
         cur.close()
@@ -228,7 +266,12 @@ def insert_file_into_db(patient_id, file_name, file_type, file_path, bucket_name
         logger.error(f"Error inserting file {file_name}.{file_type} into database: {e}")
         raise
 
-def update_vectorstore_from_s3(bucket, simulation_group_id, patient_id):
+def update_vectorstore_from_s3(bucket, simulation_group_id, patient_id, file_path):
+    connection = connect_to_db()
+    if connection is None:
+        logger.error("Database connection failed. Unable to query embeddings.")
+        raise
+    
     embeddings = BedrockEmbeddings(
         model_id=get_parameter(), 
         client=bedrock_runtime,
@@ -252,16 +295,18 @@ def update_vectorstore_from_s3(bucket, simulation_group_id, patient_id):
             group=simulation_group_id,
             patient_id=patient_id,
             vectorstore_config_dict=vectorstore_config_dict,
-            embeddings=embeddings
+            embeddings=embeddings,
+            connection=connection
         )
+
     except Exception as e:
         error_message = str(e)
         if "An error occurred (404) when calling the HeadObject operation: Not Found" in error_message:
-            logger.warning(f"Temporary page file not found while updating vectorstore for patient {patient_id} in group {simulation_group_id}. "
-                           f"This can happen when multiple files are uploaded when creating or editing a patient. All files will be converted to embeddings. "
-                           f"We recommend querying database to ensure correct amount of embeddings are created or checking below in the logs to see the difference in the embeddings.")
+            logger.warning(f"Temporary page file not found while updating vectorstore for patient {patient_id}. "
+                           f"Ingestion status for this document is set to completed since it has already been processed.")
         else:
-            logger.error(f"Error updating vectorstore for patient {patient_id} in group {simulation_group_id}: {e}")
+            update_ingestion_status(patient_id, file_path, "error")
+            logger.error(f"Error updating vectorstore for patient {patient_id}: {e}, ingestion_status set to 'error'.")
             raise
 
 def handler(event, context):
@@ -309,7 +354,8 @@ def handler(event, context):
                     file_name=file_name,
                     file_type=file_type,
                     file_path=file_key,
-                    bucket_name=bucket_name
+                    bucket_name=bucket_name,
+                    file_category=file_category
                 )
                 logger.info(f"File {file_name}.{file_type} inserted successfully.")
             except Exception as e:
@@ -324,7 +370,7 @@ def handler(event, context):
         # Update embeddings for patient after the file is successfully inserted into the database. Only if document file
         if file_category == "documents":
             try:
-                update_vectorstore_from_s3(bucket_name, simulation_group_id, patient_id)
+                update_vectorstore_from_s3(bucket_name, simulation_group_id, patient_id, file_key)
                 logger.info(f"Vectorstore updated successfully for patient {patient_id} in group {simulation_group_id}.")
             except Exception as e:
                 logger.error(f"Error updating vectorstore for patient {patient_id} in group {simulation_group_id}: {e}")

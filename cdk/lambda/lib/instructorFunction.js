@@ -1216,8 +1216,42 @@ exports.handler = async (event) => {
             response.statusCode = 400;
             response.body = JSON.stringify({ error: "patient_id is required" });
         }
-        break;
-
+      break;
+      case "GET /instructor/ingestion_status":
+        if (
+            event.queryStringParameters != null &&
+            event.queryStringParameters.patient_id &&
+            event.queryStringParameters.simulation_group_id
+        ) {
+            const { patient_id, simulation_group_id } = event.queryStringParameters;
+    
+            try {
+                // Query patient_data table to fetch filenames and ingestion_status for documents
+                const ingestionStatusData = await sqlConnection`
+                    SELECT filename, filetype, ingestion_status
+                    FROM "patient_data"
+                    WHERE patient_id = ${patient_id}
+                    AND filepath LIKE ${simulation_group_id + '/' + patient_id + '/documents/%'};
+                `;
+    
+                // Convert the results to a hashmap
+                const ingestionStatusMap = {};
+                ingestionStatusData.forEach((row) => {
+                    ingestionStatusMap[row.filename + '.' + row.filetype] = row.ingestion_status;
+                });
+    
+                response.statusCode = 200;
+                response.body = JSON.stringify(ingestionStatusMap);
+            } catch (err) {
+                response.statusCode = 500;
+                console.error(err);
+                response.body = JSON.stringify({ error: "Internal server error" });
+            }
+        } else {
+            response.statusCode = 400;
+            response.body = JSON.stringify({ error: "patient_id and simulation_group_id are required" });
+        }
+      break;
       default:
         throw new Error(`Unsupported route: "${pathData}"`);
     }

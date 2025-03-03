@@ -44,6 +44,85 @@ def extract_txt(
 
     return text
 
+def get_ingestion_status(patient_id: str, file_path: str, connection) -> str:
+    """
+    Retrieves the current ingestion status of a file.
+    
+    Args:
+        patient_id (str): The patient ID associated with the file.
+        file_path (str): The full file path stored in the database.
+    
+    Returns:
+        str: The current ingestion status ("completed", "processing", "error", or None).
+    """
+    if connection is None:
+        logger.error("Database connection failed. Unable to retrieve ingestion status.")
+        return None
+
+    try:
+        cur = connection.cursor()
+
+        select_query = "SELECT ingestion_status FROM patient_data WHERE patient_id = %s AND filepath = %s;"
+
+        cur.execute(select_query, (patient_id, file_path))
+        result = cur.fetchone()
+        connection.commit()
+        cur.close()
+        return result[0] if result else None
+
+    except Exception as e:
+        if cur:
+            cur.close()
+        connection.rollback()
+        logger.error(f"Error retrieving ingestion status for {file_path}: {e}")
+        return None
+
+def update_ingestion_status(patient_id: str, file_path: str, status: str, connection):
+    """
+    Updates the ingestion_status of a file in the patient_data table.
+
+    Args:
+        patient_id (str): The patient ID associated with the file.
+        file_path (str): The full file path stored in the database.
+        status (str): The status to update ('completed' or 'error').
+    """
+    if connection is None:
+        logger.error("Database connection failed. Unable to update ingestion status.")
+        return
+
+    try:
+        cur = connection.cursor()
+
+        # Retrieve the current ingestion status
+        select_query = "SELECT ingestion_status FROM patient_data WHERE patient_id = %s AND filepath = %s;"
+        cur.execute(select_query, (patient_id, file_path))
+        result = cur.fetchone()
+
+        if result and result[0] == "completed":
+            logger.info(f"Ingestion status for {file_path} is already 'completed'. Skipping update.")
+            connection.commit()
+            cur.close()
+            return
+
+        update_query = """
+        UPDATE "patient_data"
+        SET ingestion_status = %s
+        WHERE patient_id = %s
+        AND filepath = %s;
+        """
+        cur.execute(update_query, (status, patient_id, file_path))
+        connection.commit()
+        cur.close()
+
+        logger.info(f"Ingestion status for {file_path} updated to '{status}' for patient {patient_id}.")
+
+    except Exception as e:
+        if cur:
+            cur.close()
+        connection.rollback()
+        logger.error(f"Error updating ingestion status for patient {patient_id}, file {file_path}: {e}")
+        raise
+
 def store_doc_texts(
     bucket: str, 
     group: str, 
@@ -178,7 +257,8 @@ def process_documents(
     patient_id: str, 
     vectorstore: PGVector, 
     embeddings: BedrockEmbeddings,
-    record_manager: SQLRecordManager
+    record_manager: SQLRecordManager,
+    connection
 ) -> None:
     """
     Process and add text documents from an S3 bucket to the vectorstore.
@@ -200,6 +280,16 @@ def process_documents(
         for file in page['Contents']:
             filename = file['Key']
             if filename.endswith((".pdf", ".docx", ".pptx", ".txt", ".xlsx", ".xps", ".mobi", ".cbz")):
+                file_path = f"{group}/{patient_id}/documents/{os.path.basename(filename)}"
+                this_doc_chunks = []
+                print(file_path)
+
+                # Check if ingestion has already been completed
+                current_status = get_ingestion_status(patient_id, file_path, connection)
+                if current_status == "completed":
+                    logger.info(f"Ingestion already completed for {file_path}, skipping update.")
+                    continue
+                
                 this_doc_chunks = add_document(
                     bucket=bucket,
                     group=group,
@@ -210,6 +300,7 @@ def process_documents(
                 )
 
                 all_doc_chunks.extend(this_doc_chunks)
+                update_ingestion_status(patient_id, file_path, "completed", connection)
     
     if all_doc_chunks:  # Check if there are any documents to index
         idx = index(

@@ -7,7 +7,8 @@ def update_vectorstore(
     group: str,
     patient_id: str,
     vectorstore_config_dict: Dict[str, str],
-    embeddings#: BedrockEmbeddings
+    embeddings,#: BedrockEmbeddings
+    connection
 ) -> None:
     """
     Update the vectorstore with embeddings for all documents and images in the S3 bucket.
@@ -26,5 +27,6 @@ def update_vectorstore(
         group=group,
         patient_id=patient_id,
         vectorstore_config_dict=vectorstore_config_dict,
-        embeddings=embeddings
+        embeddings=embeddings,
+        connection=connection
     )

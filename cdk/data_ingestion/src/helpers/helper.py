@@ -63,7 +63,8 @@ def store_group_data(
     group: str, 
     patient_id: str, 
     vectorstore_config_dict: Dict[str, str], 
-    embeddings: BedrockEmbeddings
+    embeddings: BedrockEmbeddings,
+    connection
 ) -> None:
     """
     Store group data from an S3 bucket into the vectorstore.
@@ -103,5 +104,6 @@ def store_group_data(
         patient_id=patient_id,
         vectorstore=vectorstore,
         embeddings=embeddings,
-        record_manager=record_manager
+        record_manager=record_manager,
+        connection=connection
     )

@@ -2843,6 +2843,75 @@ paths:
         passthroughBehavior: "when_no_match"
         httpMethod: "POST"
         type: "aws_proxy"
+  /instructor/ingestion_status:
+    options:
+      summary: CORS support
+      description: |
+        Enable CORS by returning correct headers
+      responses:
+        200:
+          $ref: "#/components/responses/Success"
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: |
+            {
+              "statusCode" : 200
+            }
+        responses:
+          default:
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
+              method.response.header.Access-Control-Allow-Methods: "'*'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            responseTemplates:
+              application/json: |
+                {}
+    get:
+      tags:
+        - Instructor
+      summary: Get the ingestion_status of LLM files for specific patient in simulation group
+      operationId: instructor_ingestion_status_GET
+      parameters:
+        - in: query
+          name: simulation_group_id
+          required: true
+          schema:
+            type: string
+          description: ID of the group
+        - in: query
+          name: patient_id
+          required: true
+          schema:
+            type: string
+          description: ID of the patient
+      responses:
+        "200":
+          description: Successfully retrieved ingestion_status of LLM files for specific patient in simulation group
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                  description: Map containing filenames as keys and ingestion_status as values.
+                example:
+                  "Patient_Record_1.pdf": "Processing"
+                  "Patient_Record_2.pdf": "Completed"
+                  "Patient_Record_3.pdf": "Failed"
+        "400":
+          description: Bad Request - Missing query parameters
+        "500":
+          description: Internal Server Error
+      security:
+        - instructorAuthorizer: []
+      x-amazon-apigateway-integration:
+        uri:
+          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${instructorFunction.Arn}/invocations"
+        passthroughBehavior: "when_no_match"
+        httpMethod: "POST"
+        type: "aws_proxy"
   /instructor/toggle_completion:
     options:
       summary: CORS support
