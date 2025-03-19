@@ -4,7 +4,6 @@ import {
   Route,
   useNavigate,
   useParams,
-  useLocation,
 } from "react-router-dom";
 import { fetchAuthSession, fetchUserAttributes } from "aws-amplify/auth";
 import {
@@ -50,30 +49,42 @@ function titleCase(str) {
 
 // group details page
 const GroupDetails = () => {
-  const location = useLocation();
   const { groupName } = useParams();
   const [selectedComponent, setSelectedComponent] = useState(
     "InstructorAnalytics"
   );
-  const { simulation_group_id } = location.state;
+  const [simulationGroupId, setSimulationGroupId] = useState(localStorage.getItem("selectedGroupId") || null);
+
+  useEffect(() => {
+    if (!simulationGroupId) {
+      const storedGroupId = localStorage.getItem("selectedGroupId");
+      if (storedGroupId) {
+        setSimulationGroupId(storedGroupId);
+      }
+    }
+  }, []);
+
+  if (!simulationGroupId) {
+    return <Typography variant="h6">Loading ...</Typography>;
+  }
 
   const renderComponent = () => {
     switch (selectedComponent) {
       case "InstructorAnalytics":
         return (
-          <InstructorAnalytics groupName={groupName} simulation_group_id={simulation_group_id} />
+          <InstructorAnalytics groupName={groupName} simulation_group_id={simulationGroupId} />
         );
       case "InstructorEditPatients":
         return (
-          <InstructorPatients groupName={groupName} simulation_group_id={simulation_group_id} />
+          <InstructorPatients groupName={groupName} simulation_group_id={simulationGroupId} />
         );
       case "PromptSettings":
-        return <PromptSettings groupName={groupName} simulation_group_id={simulation_group_id} />;
+        return <PromptSettings groupName={groupName} simulation_group_id={simulationGroupId} />;
       case "ViewStudents":
-        return <ViewStudents groupName={groupName} simulation_group_id={simulation_group_id} />;
+        return <ViewStudents groupName={groupName} simulation_group_id={simulationGroupId} />;
       default:
         return (
-          <InstructorAnalytics groupName={groupName} simulation_group_id={simulation_group_id} />
+          <InstructorAnalytics groupName={groupName} simulation_group_id={simulationGroupId} />
         );
     }
   };
@@ -174,6 +185,7 @@ const InstructorHomepage = () => {
   );
 
   const handleRowClick = (groupName, simulation_group_id) => {
+    localStorage.setItem("selectedGroupId", simulation_group_id);
     const group = groupData.find(
       (group) => group.group_name.trim() === groupName.trim()
     );

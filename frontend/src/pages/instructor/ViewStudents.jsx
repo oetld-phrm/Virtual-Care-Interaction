@@ -154,7 +154,9 @@ export const ViewStudents = ({ groupName, simulation_group_id }) => {
   };
 
   const handleRowClick = (student) => {
-    navigate(`/group/${simulation_group_id}/student/${student.name}`, {
+    localStorage.setItem("selectedStudent", JSON.stringify(student));
+    localStorage.setItem("selectedGroupId", simulation_group_id);
+    navigate(`/group/${groupName}/student/${student.name}`, {
       state: { simulation_group_id, student },
     });
   };

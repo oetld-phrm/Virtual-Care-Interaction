@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useParams, useLocation } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { fetchAuthSession, fetchUserAttributes } from "aws-amplify/auth";
 import { toast, ToastContainer } from "react-toastify";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -115,9 +115,8 @@ const formatNotes = (noteText) => (
 
 const StudentDetails = () => {
   const { studentId } = useParams();
-  const location = useLocation();
-  const { simulation_group_id, student } = location.state;
-  // console.log(student);
+  const simulation_group_id = localStorage.getItem("selectedGroupId");
+  const student = JSON.parse(localStorage.getItem("selectedStudent"));
   const [tabs, setTabs] = useState([]);
   const [sessions, setSessions] = useState({});
   const [activeTab, setActiveTab] = useState(0);
