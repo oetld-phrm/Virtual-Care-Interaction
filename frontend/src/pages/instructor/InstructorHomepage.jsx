@@ -285,12 +285,8 @@ const InstructorHomepage = () => {
                               {row.description}
                             </TableCell>
                             <TableCell sx={{ padding: "16px" }}>
-                              <Button
-                                variant="contained"
-                                color={row.status === "Active" ? "primary" : "secondary"}
-                              >
-                                {row.status}
-                              </Button>
+                              {row.status}
+                             
                             </TableCell>
                           </TableRow>
 

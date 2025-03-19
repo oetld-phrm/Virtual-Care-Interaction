@@ -243,14 +243,13 @@ const InstructorDetails = ({ instructorData, onBack }) => {
       });
     }
   };
-  
+  console.log(instructorData)
   return (
     <>
       <Box component="main" sx={{ flexGrow: 1, p: 3, marginTop: 1, textAlign: "left" }}>
-        <Toolbar />
         <Paper sx={{ p: 2, marginBottom: 4, textAlign: "left" }}>
-          <Typography variant="h5" sx={{ marginBottom: 2, p: 1 }}>
-            Instructor: {titleCase(instructorData?.first_name)} {titleCase(instructorData?.last_name)}
+          <Typography variant="h4" sx={{ marginBottom: 2, p: 1 }}>
+            {titleCase(instructorData?.user)} {titleCase(instructorData?.last)}
           </Typography>
           <Divider sx={{ p: 1, marginBottom: 3 }} />
           <Typography variant="h7" sx={{ marginBottom: 1, p: 1 }}>

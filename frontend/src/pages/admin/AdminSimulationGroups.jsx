@@ -118,6 +118,7 @@ export const AdminSimulationGroups = () => {
     setOpenCreateDialog(false);
   };
 
+
   return (
     <Box component="main" sx={{ flexGrow: 1, p: 2, marginTop: 0.5 }}>
       <Toolbar />
@@ -207,14 +208,9 @@ export const AdminSimulationGroups = () => {
                         <TableCell sx={{ fontSize: 14 }}>
                           {row.accessCode}
                         </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="contained"
-                            color={row.status === "true" ? "primary" : "secondary"}
-                            sx={{ fontSize: 12, padding: "6px 12px" }}
-                          >
+                        <TableCell
+                         onClick={() => handleGroupClick(row)}>
                             {row.status === "true" ? "Active" : "Inactive"}
-                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}

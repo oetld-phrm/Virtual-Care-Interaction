@@ -322,18 +322,22 @@ const GroupDetails = ({ group, onBack }) => {
       });
     }
   };
-  
+
   return (
+    
     <>
       {!loading && (
         <Box
           component="main"
-          sx={{ flexGrow: 1, p: 3, marginTop: 1, textAlign: "left" }}
+          sx={{ flexGrow: 1, p: 3, textAlign: "left" }}
         >
-          <Toolbar />
+        
           <Paper sx={{ padding: 2, marginBottom: 2 }}>
             <Typography variant="h4" sx={{ marginBottom: 0 }}>
-              {group.group}
+              {group.groupName}
+            </Typography>
+            <Typography variant="p" sx={{ marginBottom: 0 }}>
+              Access Code: {group.accessCode}
             </Typography>
             <Divider sx={{ p: 1, marginBottom: 3 }} />
             <FormControl fullWidth sx={{ marginBottom: 2 }}>
