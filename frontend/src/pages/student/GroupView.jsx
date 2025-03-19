@@ -273,7 +273,7 @@ export const GroupView = ({ group, setPatient, setGroup }) => {
                 <TableHead>
                   <TableRow>
                     <TableCell sx={{ fontSize: "1.1rem" }}>Patient</TableCell>
-                    <TableCell sx={{ fontSize: "1.1rem" }}>LLM Evaluation</TableCell>
+                    {/* <TableCell sx={{ fontSize: "1.1rem" }}>LLM Evaluation</TableCell> */}
                     <TableCell sx={{ fontSize: "1.1rem" }}>Instructor Evaluation</TableCell>
                     <TableCell sx={{ fontSize: "1.1rem" }}>Review</TableCell>
                   </TableRow>
@@ -304,7 +304,9 @@ export const GroupView = ({ group, setPatient, setGroup }) => {
                               </div>
                             </div>
                           </TableCell>
-                      <TableCell sx={{ fontSize: "1rem" }}>
+                          
+                     {/* <TableCell sx={{ fontSize: "1rem" }}>
+                        {console.log(entry)}
                         {entry.llm_completion ? (
                           entry.patient_score === 100 ? (
                               <span
@@ -324,7 +326,7 @@ export const GroupView = ({ group, setPatient, setGroup }) => {
                               LLM is not checking
                             </span>
                         )}
-                      </TableCell>
+                      </TableCell>*/}
                       <TableCell sx={{ fontSize: "1rem" }}>
                         {completionStatuses[entry.patient_name] ? (
                           <span
