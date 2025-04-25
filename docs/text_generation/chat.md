@@ -205,7 +205,7 @@ def get_response(
     if llm_completion:
         completion_string = """
                 Continue this process until you determine that me, the pharmacy student, has properly diagnosed the patient you are pretending to be.
-                Once the proper diagnosis is provided, include PROPER DIAGNOSIS ACHIEVED in your response and do not continue the conversation.
+                Once the proper diagnosis is provided, include PHRM GOAL ACHIEVED in your response and do not continue the conversation.
                 """
 
     # Create a system prompt for the question answering
@@ -372,18 +372,18 @@ def get_llm_output(response: str, llm_completion: bool) -> dict:
             llm_verdict=False
         )
     
-    elif "PROPER DIAGNOSIS ACHIEVED" not in response:
+    elif "PHRM GOAL ACHIEVED" not in response:
         return dict(
             llm_output=response,
             llm_verdict=False
         )
     
-    elif "PROPER DIAGNOSIS ACHIEVED" in response:
+    elif "PHRM GOAL ACHIEVED" in response:
         sentences = split_into_sentences(response)
         
         for i in range(len(sentences)):
             
-            if "PROPER DIAGNOSIS ACHIEVED" in sentences[i]:
+            if "PHRM GOAL ACHIEVED" in sentences[i]:
                 llm_response=' '.join(sentences[0:i-1])
                 
                 if sentences[i-1][-1] == '?':
@@ -401,12 +401,12 @@ def get_llm_output(response: str, llm_completion: bool) -> dict:
 Processes the response from the LLM to determine whether the proper diagnosis for the patient has been achieved. Extracts relevant output and assigns a verdict indicating success or failure.
 
 #### Process Flow
-1. **Check for "PROPER DIAGNOSIS ACHIEVED" Absence**: If **"PROPER DIAGNOSIS ACHIEVED"** is **not** in the response, return the original response with `llm_verdict` set to `False`.
-2. **Check for "PROPER DIAGNOSIS ACHIEVED" Presence**: If **"PROPER DIAGNOSIS ACHIEVED"** is in the response:
+1. **Check for "PHRM GOAL ACHIEVED" Absence**: If **"PHRM GOAL ACHIEVED"** is **not** in the response, return the original response with `llm_verdict` set to `False`.
+2. **Check for "PHRM GOAL ACHIEVED" Presence**: If **"PHRM GOAL ACHIEVED"** is in the response:
   - Splits the response into sentences using `split_into_sentences(response)`.
-  - Iterates through the sentences to find the one containing **"PROPER DIAGNOSIS ACHIEVED"**.
-  - Extracts all sentences before **"PROPER DIAGNOSIS ACHIEVED"** and joins them into `llm_response`.
-  - Checks the punctuation of the sentence immediately before **"PROPER DIAGNOSIS ACHIEVED"**:
+  - Iterates through the sentences to find the one containing **"PHRM GOAL ACHIEVED"**.
+  - Extracts all sentences before **"PHRM GOAL ACHIEVED"** and joins them into `llm_response`.
+  - Checks the punctuation of the sentence immediately before **"PHRM GOAL ACHIEVED"**:
     - If the preceding sentence ends with a question mark (`?`):
       - Sets `llm_verdict` to `False` (indicating the proper diagnosis was not found).
     - Else:

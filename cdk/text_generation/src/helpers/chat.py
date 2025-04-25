@@ -141,13 +141,13 @@ def get_response(
     """
     
     completion_string = """
-                Once I, the pharmacy student, have give you a diagnosis, politely leave the conversation and wish me goodbye.
-                Regardless if I have given you the proper diagnosis or not for the patient you are pretending to be, stop talking to me.
+                Once I, the pharmacy student, have accomplished the goal you have for this visit to the pharmacy, politely leave the conversation and wish me goodbye.
+                Regardless if I have provided accurate advice for the patient you are pretending to be, stop talking to me.
                 """
     if llm_completion:
         completion_string = """
-                Continue this process until you determine that me, the pharmacy student, has properly diagnosed the patient you are pretending to be.
-                Once the proper diagnosis is provided, include PROPER DIAGNOSIS ACHIEVED in your response and do not continue the conversation.
+                Continue this process until you determine that I, the pharmacist, has properly accomplished the goal for the visit to the pharmacy that the patient you are pretending to be had.
+                Once the proper goal has been achieved, include PHRM GOAL ACHIEVED in your response and do not continue the conversation.
                 """
 
     # Create a system prompt for the question answering
@@ -155,14 +155,13 @@ def get_response(
         f"""
         <|begin_of_text|>
         <|start_header_id|>patient<|end_header_id|>
-        You are a patient, I am a pharmacy student. Your name is {patient_name} and you are going to pretend to be a patient talking to me, a pharmacy student.
-        You are not the pharmacy student. You are the patient. Look at the document(s) provided to you and act as a patient with those symptoms.
+        Your name is {patient_name} and you are roleplaying as a patient talking to me, a pharmacist.
+        You are not the pharmacist. You are the patient. Look at the document(s) provided to you and act as a patient with those symptoms.
         Please pay close attention to this: {system_prompt} 
         Start the conversion by saying Hello! I'm {patient_name}, I am {patient_age} years old, and then further talk about the symptoms you have. 
         Here are some additional details about your personality, symptoms, or overall condition: {patient_prompt}
         {completion_string}
-        Use the following document(s) to provide
-        hints as a patient to me, the pharmacy student. Use three sentences maximum when describing your symptoms to provide clues to me, the pharmacy student.
+        Use the following document(s) to provide hints as a patient to me, the pharmacy student. Use three sentences maximum when describing your symptoms to provide clues to me, the pharmacy student.
         End each clue with a question that pushes me to the correct diagnosis. I might ask you questions or provide my thoughts as statements.
         Again, YOU ARE SUPPOSED TO ACT AS THE PATIENT. I AM THE PHARMACY STUDENT. 
         <|eot_id|>
@@ -237,7 +236,7 @@ def get_llm_output(response: str, llm_completion: bool) -> dict:
     flag indicating whether proper diagnosis has been achieved.
     """
 
-    completion_sentence = " Congratulations! You have provided the proper diagnosis for me, the patient I am pretending to be! Please try other mock patients to continue your diagnosis skills! :)"
+    completion_sentence = " Congratulations! You have completed this interaction. Please try other patients to continue to practice patient interviewing skills! :)"
 
     if not llm_completion:
         return dict(
@@ -245,18 +244,18 @@ def get_llm_output(response: str, llm_completion: bool) -> dict:
             llm_verdict=False
         )
     
-    elif "PROPER DIAGNOSIS ACHIEVED" not in response:
+    elif "PHRM GOAL ACHIEVED" not in response:
         return dict(
             llm_output=response,
             llm_verdict=False
         )
     
-    elif "PROPER DIAGNOSIS ACHIEVED" in response:
+    elif "PHRM GOAL ACHIEVED" in response:
         sentences = split_into_sentences(response)
         
         for i in range(len(sentences)):
             
-            if "PROPER DIAGNOSIS ACHIEVED" in sentences[i]:
+            if "PHRM GOAL ACHIEVED" in sentences[i]:
                 llm_response=' '.join(sentences[0:i-1])
                 
                 if sentences[i-1][-1] == '?':
