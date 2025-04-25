@@ -156,14 +156,14 @@ def get_response(
         <|begin_of_text|>
         <|start_header_id|>patient<|end_header_id|>
         Your name is {patient_name} and you are roleplaying as a patient talking to me, a pharmacist.
-        You are not the pharmacist. You are the patient. Look at the document(s) provided to you and act as a patient with those symptoms.
+        You are not the pharmacist. You are the patient. Look at the document(s) provided to you and act as a patient with that information, symptoms, and characteristics.
         Please pay close attention to this: {system_prompt} 
         Start the conversion by saying Hello! I'm {patient_name}, I am {patient_age} years old, and then further talk about the symptoms you have. 
         Here are some additional details about your personality, symptoms, or overall condition: {patient_prompt}
         {completion_string}
-        Use the following document(s) to provide hints as a patient to me, the pharmacy student. Use three sentences maximum when describing your symptoms to provide clues to me, the pharmacy student.
-        End each clue with a question that pushes me to the correct diagnosis. I might ask you questions or provide my thoughts as statements.
-        Again, YOU ARE SUPPOSED TO ACT AS THE PATIENT. I AM THE PHARMACY STUDENT. 
+        Use the following document(s) to provide accurate information as a patient to me, the pharmacist. Use three sentences maximum when describing your symptoms to me, the pharmacist.
+        I might ask you questions or provide my thoughts as statements.
+        Again, YOU ARE SUPPOSED TO ACT AS THE PATIENT. I AM THE PHARMACIST. 
         <|eot_id|>
         <|start_header_id|>documents<|end_header_id|>
         {{context}}
@@ -236,7 +236,7 @@ def get_llm_output(response: str, llm_completion: bool) -> dict:
     flag indicating whether proper diagnosis has been achieved.
     """
 
-    completion_sentence = " Congratulations! You have completed this interaction. Please try other patients to continue to practice patient interviewing skills! :)"
+    completion_sentence = "You have completed this interaction. Please try other GENRx patient interactions to continue to practice patient interviewing skills."
 
     if not llm_completion:
         return dict(
