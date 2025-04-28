@@ -2578,6 +2578,12 @@ paths:
           description: Email of the instructor updating the patient
           schema:
             type: string
+        - in: query
+          name: simulation_group_id
+          required: true
+          description: ID of the group
+          schema:
+            type: string
       requestBody:
         required: true
         content:

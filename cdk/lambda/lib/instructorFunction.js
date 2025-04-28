@@ -517,29 +517,30 @@ exports.handler = async (event) => {
         if (
             event.queryStringParameters != null &&
             event.queryStringParameters.patient_id &&
-            event.queryStringParameters.instructor_email
+            event.queryStringParameters.instructor_email &&
+            event.queryStringParameters.simulation_group_id
         ) {
 
-            const { patient_id, instructor_email } = event.queryStringParameters;
+            const { patient_id, instructor_email, simulation_group_id } = event.queryStringParameters;
             const { patient_name, patient_age, patient_gender, patient_prompt } = JSON.parse(event.body || "{}");
 
             if (patient_name != null && patient_age != null && patient_gender != null  && patient_prompt != null) {
                 try {
-                    //removing this as it's checking all patients for the same name and this isn't a real concern - causing more issues than it's solving  
                     // Check if another patient with the same name exists under the same simulation group
-                    // const existingPatient = await sqlConnection`
-                    //     SELECT * FROM "patients"
-                    //     WHERE patient_name = ${patient_name}
-                    //     AND patient_id != ${patient_id};
-                    // `;
+                    const existingPatient = await sqlConnection`
+                        SELECT * FROM "patients"
+                       WHERE simulation_group_id = ${simulation_group_id}
+                        AND patient_name = ${patient_name}
+                       AND patient_id != ${patient_id};
+                   `;
     
-                    // if (existingPatient.length > 0) {
-                    //     response.statusCode = 400;
-                    //     response.body = JSON.stringify({
-                    //         error: "A patient with this name already exists.",
-                    //     });
-                    //     break;
-                    // }
+                    if (existingPatient.length > 0) {
+                         response.statusCode = 400;
+                         response.body = JSON.stringify({
+                             error: "A patient with this name already exists.",
+                         });
+                         break;
+                     }
     
                     // Update the patient details in the patients table
                     await sqlConnection`
@@ -565,7 +566,7 @@ exports.handler = async (event) => {
                         ) VALUES (
                             uuid_generate_v4(), 
                             (SELECT user_id FROM "users" WHERE user_email = ${instructor_email}),
-                            (SELECT simulation_group_id FROM "patients" WHERE patient_id = ${patient_id}),
+                            ${simulation_group_id}, 
                             ${patient_id}, 
                             NULL, 
                             CURRENT_TIMESTAMP, 

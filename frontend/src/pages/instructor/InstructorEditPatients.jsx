@@ -337,7 +337,9 @@ const InstructorEditPatients = ({ patientData, simulation_group_id, onClose, onP
       `${import.meta.env.VITE_API_ENDPOINT
       }instructor/edit_patient?patient_id=${encodeURIComponent(
         patient.patient_id
-      )}&instructor_email=${encodeURIComponent(email)}`,
+      )}&instructor_email=${encodeURIComponent(
+        email
+      )}&simulation_group_id=${encodeURIComponent(simulation_group_id)}`,
       {
         method: "PUT",
         headers: {
