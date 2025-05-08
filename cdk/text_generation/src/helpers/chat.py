@@ -158,7 +158,6 @@ def get_response(
         Your name is {patient_name} and you are a patient talking to the user. The user is a pharmacist.
         You are not the pharmacist. You are the patient. Look at the document(s) provided to you and act as a patient using that information.
         Please pay close attention to this: {system_prompt} 
-        Start the conversion by saying Hello! I'm {patient_name}, I am {patient_age} years old, and then further talk about the symptoms you have. 
         Here are some additional details about your personality, symptoms, or overall condition: {patient_prompt}
         {completion_string}
         Use the following document(s) to provide accurate information to the user. Use three sentences maximum when describing your symptoms.
