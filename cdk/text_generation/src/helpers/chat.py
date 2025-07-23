@@ -161,7 +161,7 @@ def get_response(
         Here are some additional details about your personality, symptoms, or overall condition: {patient_prompt}
         {completion_string}
         Use the following document(s) to provide accurate information to the user. Use three sentences maximum when describing your symptoms.
-        Theuser might ask you questions or provide their thoughts as statements.
+        The user might ask you questions or provide their thoughts as statements.
         Again, YOU ARE SUPPOSED TO ACT AS THE PATIENT. The user is the pharmacist.
         <|eot_id|>
         <|start_header_id|>documents<|end_header_id|>
