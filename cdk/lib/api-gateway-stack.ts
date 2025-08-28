@@ -1135,25 +1135,34 @@ export class ApiGatewayStack extends cdk.Stack {
       })
     );
 
-    // Create Log Group
-    const logGroup = new logs.LogGroup(this, `${id}-DataIngestLambdaLogGroup`, {
-      logGroupName: `/aws/lambda/${dataIngestLambdaDockerFunc.functionName}`,
-      retention: logs.RetentionDays.ONE_WEEK,
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-    });
+    // Get Log Group for dataIngestLambdaDockerFunc
+    let logGroup: logs.ILogGroup;
+    try {
+      logGroup = logs.LogGroup.fromLogGroupName(
+        this,
+        `${id}-ExistingDataIngestLambdaLogGroup`,
+        `/aws/lambda/${dataIngestLambdaDockerFunc.functionName}`
+      );
+    } catch {
+      logGroup = new logs.LogGroup(this, `${id}-DataIngestLambdaLogGroup`, {
+        logGroupName: `/aws/lambda/${dataIngestLambdaDockerFunc.functionName}`,
+        retention: logs.RetentionDays.ONE_WEEK, // Set retention policy
+        removalPolicy: cdk.RemovalPolicy.DESTROY, // Adjust as needed
+      });
+    }
 
-    // Create Metric Filter
+    // Define a CloudWatch Log Metric Filter to detect timeouts
     const timeoutMetricFilter = new logs.MetricFilter(this, `${id}-LambdaTimeoutMetricFilter`, {
-      logGroup,
+      logGroup: logGroup,
       metricNamespace: "LambdaTimeouts",
       metricName: "DataIngestLambdaTimeouts",
       filterPattern: logs.FilterPattern.literal("Task timed out after"),
       metricValue: "1",
     });
 
-    // Create CloudWatch Alarm
+    // Define the CloudWatch Alarm for Lambda timeout
     const timeoutAlarm = new cloudwatch.Alarm(this, `${id}-DataIngestLambdaTimeoutAlarm`, {
-      metric: timeoutMetricFilter.metric({
+      metric: timeoutMetricFilter.metric({ 
         statistic: 'Sum',
         period: cdk.Duration.seconds(10)
       }),
@@ -1161,7 +1170,7 @@ export class ApiGatewayStack extends cdk.Stack {
       threshold: 1,
       evaluationPeriods: 1,
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
-      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING // Avoid false positives
     });
 
     // This rule will help invoke timeout Lambda function when the alarm is triggered

@@ -8,6 +8,6 @@ langchain-postgres
 python-dotenv
 sqlalchemy
 Pillow
-pymupdf==1.24.10
+pymupdf
 psycopg[binary,pool]
 psycopg2-binary
