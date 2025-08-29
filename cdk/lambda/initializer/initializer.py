@@ -150,7 +150,7 @@ def handler(event, context):
             CREATE EXTENSION IF NOT EXISTS vector;
 
             CREATE TABLE "langchain_pg_embedding" (
-                id varchar,
+                "uuid" uuid PRIMARY KEY DEFAULT (uuid_generate_v4()),
                 collection_id UUID NOT NULL REFERENCES langchain_pg_collection(uuid) ON DELETE CASCADE,
                 embedding vector(1024),
                 cmetadata JSONB,
