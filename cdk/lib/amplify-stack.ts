@@ -4,7 +4,6 @@ import {
   GitHubSourceCodeProvider,
   RedirectStatus, 
 } from "@aws-cdk/aws-amplify-alpha";
-
 import * as cdk from "aws-cdk-lib";
 import { BuildSpec } from "aws-cdk-lib/aws-codebuild";
 import { Construct } from "constructs";
@@ -81,6 +80,8 @@ export class AmplifyStack extends cdk.Stack {
       status: RedirectStatus.NOT_FOUND_REWRITE,
     });
 
-    amplifyApp.addBranch("main");
+    amplifyApp.addBranch("main", {
+      autoBuild: true, // ensures auto-build on commits
+    });
   }
 }
