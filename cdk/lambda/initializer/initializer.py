@@ -141,6 +141,23 @@ def handler(event, context):
                 "engagement_details" text
             );
 
+            CREATE TABLE IF NOT EXISTS "langchain_pg_collection" (
+                "uuid" uuid PRIMARY KEY DEFAULT (uuid_generate_v4()),
+                "name" varchar,
+                "cmetadata" JSON
+            );
+
+            CREATE EXTENSION IF NOT EXISTS vector;
+
+            CREATE TABLE "langchain_pg_embedding" (
+                id varchar,
+                collection_id UUID NOT NULL REFERENCES langchain_pg_collection(uuid) ON DELETE CASCADE,
+                embedding vector(1024),
+                cmetadata JSONB,
+                document varchar
+            );
+
+
             -- Add foreign key constraints
             ALTER TABLE "user_engagement_log" ADD FOREIGN KEY ("enrolment_id") REFERENCES "enrolments" ("enrolment_id") ON DELETE CASCADE ON UPDATE CASCADE;
             ALTER TABLE "user_engagement_log" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("user_id") ON DELETE CASCADE ON UPDATE CASCADE;
