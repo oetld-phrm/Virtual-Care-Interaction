@@ -23,7 +23,7 @@ export class AmplifyStack extends cdk.Stack {
     const githubRepoName = new cdk.CfnParameter(this, "githubRepoName", {
       type: "String",
       description: "The name of the GitHub repository",
-    }).valueAsString;
+    }).valueAsString.toLowerCase();
 
     const amplifyYaml = yaml.parse(` 
       version: 1
@@ -80,6 +80,8 @@ export class AmplifyStack extends cdk.Stack {
       status: RedirectStatus.NOT_FOUND_REWRITE,
     });
 
-    amplifyApp.addBranch("main");
+    amplifyApp.addBranch("main", {
+      autoBuild: true, // ensures auto-build on commits
+    });
   }
 }
